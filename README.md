@@ -1,18 +1,101 @@
-# Vue 3 + TypeScript + Vite
+# 自己封装 vue3+ts 组件库并且发布到 NPM
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## 创建项目
 
-## Recommended IDE Setup
+```shell
+pnpm create vite
+```
 
-- [VS Code](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+## 配置 package.json
 
-## Type Support For `.vue` Imports in TS
+按照提示创建好项目，然后再 `package.json` 中进行如下配置：
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin) to make the TypeScript language service aware of `.vue` types.
+```json
+{
+  "name": "tribiani-vue-tools",
+  "private": false,
+  "version": "0.0.12",
+  "type": "module",
+  "types": "dist/lib/main.d.ts",
+  "module": "dist/main.es.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.5.3",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.5",
+    "vite-plugin-dts": "^3.5.2",
+    "vue-tsc": "^1.8.5"
+  }
+}
 
-If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
+```
 
-1. Disable the built-in TypeScript Extension
-   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
-2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
+## 配置 vite.config.ts
+
+### 配置库模式
+
+这里需要配置[库模式](https://cn.vitejs.dev/guide/build.html#library-mode)
+
+```ts
+ build: {
+    lib: {
+      // Could also be a dictionary or array of multiple entry points
+      entry: resolve(__dirname, 'lib/main.ts'),
+      name: 'MyLib',
+      // the proper extensions will be added
+      // fileName: 'my-lib',
+      fileName(format, entryName) {
+        return `${entryName}.${format}.js`
+      },
+    },
+    rollupOptions: {
+      // 确保外部化处理那些你不想打包进库的依赖
+      external: ['vue'],
+      output: {
+        // 在 UMD 构建模式下为这些外部化的依赖提供一个全局变量
+        globals: {
+          vue: 'Vue',
+        },
+      },
+    },
+```
+
+### 使用 vite-plugin-dts 生成对应的声明文件
+
+```ts
+import dts from "vite-plugin-dts";
+export default defineConfig({
+  ///
+  plugins: [vue(), dts()],
+  ///
+});
+```
+
+## 问题记录
+
+### 怎么从一个 TS 文件到处其他的 TS 文件
+
+```ts
+export * from "./tools";
+export * from "./components";
+export * from "./deepClone";
+export { default as shallowClone } from "./shallowClone";
+```
+
+### 怎么从一个 TS 文件导出多个 vue 组件
+
+```ts
+export { default as HButton } from "./HButton.vue";
+export { default as HClone } from "./HCloneTest.vue";
+```
